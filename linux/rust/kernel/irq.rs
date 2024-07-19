@@ -15,6 +15,7 @@ use crate::{
     str::CString,
     types::PointerWrapper,
     Error, Result, ScopeGuard,
+    pr_info,
 };
 use core::{fmt, marker::PhantomData, ops::Deref};
 use macros::vtable;
@@ -308,6 +309,7 @@ struct InternalRegistration<T: PointerWrapper> {
     data: *mut core::ffi::c_void,
     name: CString,
     _p: PhantomData<T>,
+    is_empty:bool
 }
 
 impl<T: PointerWrapper> InternalRegistration<T> {
@@ -352,6 +354,27 @@ impl<T: PointerWrapper> InternalRegistration<T> {
             _p: PhantomData,
         })
     }
+    fn new_empty(data: T) -> Self {
+        Self{
+            irq: 0,
+            name: CString::new("empty").unwrap(),
+            data: data.into_pointer() as *mut _,
+            _p: PhantomData,
+        }
+    }
+    fn unregister(&mut self) {
+        // Unregister irq handler.
+        //
+        // SAFETY: When `try_new` succeeds, the irq was successfully requested, so it is ok to free
+        // it here.
+        unsafe { bindings::free_irq(self.irq, self.data) };
+        pr_info!("irq: freed ");
+
+        // Free context data.
+        //
+        // SAFETY: This matches the call to `into_pointer` from `try_new` in the success case.
+        // unsafe { T::from_pointer(self.data) };
+    }
 }
 
 impl<T: PointerWrapper> Drop for InternalRegistration<T> {
@@ -360,12 +383,18 @@ impl<T: PointerWrapper> Drop for InternalRegistration<T> {
         //
         // SAFETY: When `try_new` succeeds, the irq was successfully requested, so it is ok to free
         // it here.
-        unsafe { bindings::free_irq(self.irq, self.data) };
+        if self.is_empty {
+            pr_info!("empty free!!! ");
+        }else {
+            unsafe { bindings::free_irq(self.irq, self.data) };
+            unsafe { T::from_pointer(self.data) };
+
+        }
+        pr_info!("irq: free ");
 
         // Free context data.
         //
         // SAFETY: This matches the call to `into_pointer` from `try_new` in the success case.
-        unsafe { T::from_pointer(self.data) };
     }
 }
 
@@ -419,6 +448,20 @@ impl<H: Handler> Registration<H> {
             InternalRegistration::try_new(irq, Some(Self::handler), None, flags, data, name)?
         }))
     }
+    // pub fn unregister(self) {
+    //     InternalRegistration::unregister(self.0)
+    // }
+    // pub fn new_empty(
+    //     irq: u32,
+    //     data: H::Data,
+    //     flags: usize,
+    //     name: fmt::Arguments<'_>,
+    // ) -> Result<Self> {
+    //     // SAFETY: `handler` only calls `H::Data::borrow` on `raw_data`.
+    //     Ok(Self(unsafe {
+    //         InternalRegistration::new_empty(irq, Some(Self::handler), None, flags, data, name)?
+    //     }))
+    // }
 
     unsafe extern "C" fn handler(
         _irq: core::ffi::c_int,

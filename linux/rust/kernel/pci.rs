@@ -282,6 +282,14 @@ impl Device {
         // SAFETY: By the type invariants, we know that `self.ptr` is non-null and valid.
         unsafe { (*self.ptr).irq }
     }
+    /// return a the PCI device
+    pub fn clone(&self) -> Self {
+        Self { ptr:self.ptr }
+    }
+    /// return a the PCI device pointer
+    pub fn get_ptr(&self) -> *mut bindings::pci_dev {
+        self.ptr
+    }
 
     /// Initialize device
     pub fn enable_device(&mut self) -> Result {

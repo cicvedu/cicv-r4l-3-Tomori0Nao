@@ -14,6 +14,8 @@ use kernel::{pci, device, driver, bindings, net, dma, c_str};
 use kernel::device::RawDevice;
 use kernel::sync::SpinLock;
 
+use alloc::vec;
+
 
 
 mod consts;
@@ -46,13 +48,29 @@ struct NetDevicePrvData {
     tx_ring: SpinLock<Option<TxRingBuf>>,
     rx_ring: SpinLock<Option<RxRingBuf>>,
     irq: u32,
+    // irq_reg: Box<kernel::irq::Registration<E1000InterruptHandler>>,
     _irq_handler: AtomicPtr<kernel::irq::Registration<E1000InterruptHandler>>
+    // irq_handler_list: vec::Vec<Box<kernel::irq::Registration<E1000InterruptHandler>>>,
+    // irq_prv_data: Box<IrqPrivateData>,
+
+    // irq_reg: Box<kernel::irq::Registration<E1000InterruptHandler>>,
 }
 
 
 // TODO not sure why it is safe to do this.
 unsafe impl Send for NetDevicePrvData {}
 unsafe impl Sync for NetDevicePrvData {}
+// impl Drop for NetDevicePrvData {
+//     fn drop(&mut self) {
+//         pr_info!("NetDevicePrvData drop");
+//         // 释放 irq_handler 资源
+//         let irq_handler_ptr = self._irq_handler.swap(core::ptr::null_mut(), core::sync::atomic::Ordering::Relaxed);
+//         if !irq_handler_ptr.is_null() {
+//             // 将裸指针转换为 Box，随后会自动释放资源
+//             let _irq_handler_box = unsafe { Box::from_raw(irq_handler_ptr) };
+//         }
+//     }
+// }
 
 /// Represent the network device
 struct NetDevice {}
@@ -141,7 +159,6 @@ impl NetDevice {
 
     }
 
-
 }
 
 #[vtable]
@@ -177,8 +194,10 @@ impl net::DeviceOperations for NetDevice {
         // Again, the `irq::Registration` contains an `irq::InternalRegistration` which implemented `Drop`, so 
         // we mustn't let it dropped.
         // TODO: there is memory leak now. 
-        let req_reg = kernel::irq::Registration::<E1000InterruptHandler>::try_new(data.irq, irq_prv_data, kernel::irq::flags::SHARED, fmt!("{}",data.dev.name()))?;
-        data._irq_handler.store(Box::into_raw(Box::try_new(req_reg)?), core::sync::atomic::Ordering::Relaxed);
+        let req_reg = Box::try_new(kernel::irq::Registration::<E1000InterruptHandler>::try_new(data.irq, irq_prv_data, kernel::irq::flags::SHARED, fmt!("{}",data.dev.name()))?)?;
+        // data.irq_handler_list.try_push(req_reg)?;
+
+        data._irq_handler.store(Box::into_raw(req_reg), core::sync::atomic::Ordering::Relaxed);
 
         data.napi.enable();
 
@@ -191,6 +210,15 @@ impl net::DeviceOperations for NetDevice {
 
     fn stop(_dev: &net::Device, _data: &NetDevicePrvData) -> Result {
         pr_info!("Rust for linux e1000 driver demo (net device stop)\n");
+        _data.napi.disable();
+        pr_info!("name {}",_data.dev.name());
+        //  释放 irq_handler 资源
+        let irq_handler_ptr = _data._irq_handler.swap(core::ptr::null_mut(), core::sync::atomic::Ordering::Relaxed);
+        if !irq_handler_ptr.is_null() {
+        //     // 将裸指针转换为 Box，随后会自动释放资源
+            let _irq_handler_box = unsafe { Box::from_raw(irq_handler_ptr) };
+            drop(_irq_handler_box);
+        }
         Ok(())
     }
 
@@ -293,10 +321,21 @@ impl kernel::irq::Handler for E1000InterruptHandler {
 /// the private data for the adapter
 struct E1000DrvPrvData {
     _netdev_reg: net::Registration<NetDevice>,
-}
+    _pdev: Arc<pci::Device>,
+    _e1000_hw_ops: Arc<E1000Ops>,
+    bars:i32,
+    // _napi: Arc<net::Napi>,
+    _irq:u32,
+    // _irq_prv_data: Arc<IrqPrivateData>,
 
+
+
+}
+unsafe impl Send for E1000DrvPrvData {}
+unsafe impl Sync for E1000DrvPrvData {}
 impl driver::DeviceRemoval for E1000DrvPrvData {
     fn device_remove(&self) {
+        
         pr_info!("Rust for linux e1000 driver demo (device_remove)\n");
     }
 }
@@ -317,15 +356,22 @@ impl net::NapiPoller for NapiHandler {
         let mut rdt = data.e1000_hw_ops.e1000_read_rx_queue_tail() as usize;
         rdt = (rdt + 1) % RX_RING_SIZE;
 
+        // pr_info!("e10000_hw_ops\n");
 
 
         let mut rx_ring_guard = data.rx_ring.lock();
         let rx_ring =  rx_ring_guard.as_mut().unwrap();
 
+        // pr_info!("rx ring error\n");
+
         
         let mut descs = rx_ring.desc.as_desc_slice();
+        
+        // pr_info!("rx ring descs\n");
 
         while descs[rdt].status & E1000_RXD_STAT_DD as u8 != 0 {
+            // pr_info!("in whlile\n");
+
             let packet_len = descs[rdt].length as usize;
             let buf = &mut rx_ring.buf.borrow_mut();
             let skb = &buf[rdt].as_mut().unwrap().1;
@@ -354,7 +400,14 @@ impl net::NapiPoller for NapiHandler {
 
 struct E1000Drv {}
 
-
+// trait GetDevPtr {
+//     fn get_dev_ptr(&self) -> *mut bindings::pci_dev;
+// }
+// impl GetDevPtr for pci::Device {
+//     fn get_dev_ptr(&self) -> *mut bindings::pci_dev {
+//         self.ptr
+//     }
+// }
 
 impl pci::Driver for E1000Drv {
 
@@ -377,7 +430,9 @@ impl pci::Driver for E1000Drv {
         let bars = dev.select_bars((bindings::IORESOURCE_MEM | bindings::IORESOURCE_IO) as u64);
 
         // the underlying will call `pci_enable_device()`. the R4L framework doesn't support `pci_enable_device_memory()` now.
+        pr_info!("before enable device");
         dev.enable_device()?;
+        pr_info!("after enable device");
 
         // ask the os to reserve the physical memory region of the selected bars.
         dev.request_selected_regions(bars, c_str!("e1000 reserved memory"))?;
@@ -404,7 +459,7 @@ impl pci::Driver for E1000Drv {
 
 
         // TODO implement C version `e1000_init_hw_struct()`
-
+        // pr_info!("before set mask");
         // only pci-x need 64-bit, to simplify code, hardcode 32-bit for now.
         dma::set_coherent_mask(dev, 0xFFFFFFFF)?;
 
@@ -421,8 +476,8 @@ impl pci::Driver for E1000Drv {
             mem_addr: Arc::clone(&mem_addr),
             io_addr: Arc::clone(&io_addr),
         };
-        e1000_hw_ops.e1000_reset_hw()?;
 
+        e1000_hw_ops.e1000_reset_hw()?;
 
         // TODO: the MAC address is hardcoded here, should be read out from EEPROM later.
         netdev.eth_hw_addr_set(&MAC_HWADDR);
@@ -430,11 +485,11 @@ impl pci::Driver for E1000Drv {
         // TODO: Some background tasks and Wake on LAN are not supported now.
 
         let irq = dev.irq();
-
         let common_dev = device::Device::from_dev(dev);
 
         netdev.netif_carrier_off();
 
+        // let _pdev = Arc::try_new(dev)?;
 
         // SAFETY: `spinlock_init` is called below.
         let mut tx_ring = unsafe{SpinLock::new(None)};
@@ -443,30 +498,78 @@ impl pci::Driver for E1000Drv {
         kernel::spinlock_init!(unsafe{Pin::new_unchecked(&mut tx_ring)}, "tx_ring");
         kernel::spinlock_init!(unsafe{Pin::new_unchecked(&mut rx_ring)}, "rx_ring");
 
+        // let common_dev_ptr = Arc::try_new(common_dev)?;
+        // let e1000_hw_ops_ptr = Arc::try_new(e1000_hw_ops)?;
+        // let napi_ptr = Arc::try_new(napi)?;
+        // let netdevice_PrvData = Box::try_new(
+        //     NetDevicePrvData {
+        //         dev: Arc::clone(common_dev_ptr),
+        //         e1000_hw_ops: Arc::clone(e1000_hw_ops_ptr),
+        //         napi: Arc::clone(napi_ptr),
+        //         tx_ring,
+        //         rx_ring,
+        //         irq,
+        //         _irq_handler: AtomicPtr::new(core::ptr::null_mut()),
+        //     }
+        // )?;
+        // common_dev.ptr;
+        let dev_arc = Arc::try_new(common_dev)?;
+        let e10000_hw_ops_arc = Arc::try_new(e1000_hw_ops)?;
+        let napi_arc:Arc<net::Napi> = napi.into();
+        let irq_prv_data = Box::try_new(IrqPrivateData{
+            e1000_hw_ops: Arc::clone(&e10000_hw_ops_arc),
+            napi: Arc::clone(&napi_arc),
+        })?;
 
-        netdev_reg.register(Box::try_new(
+
+        let _e1000_hw_ops = Arc::clone(&e10000_hw_ops_arc);
+        let _napi =  Arc::clone(&napi_arc);
+        // let _irq_prv_data = Arc::clone(&irq_prv_data);
+
+        let netdevice_prv_data = Box::try_new(
             NetDevicePrvData {
-                dev: Arc::try_new(common_dev)?,
-                e1000_hw_ops: Arc::try_new(e1000_hw_ops)?,
-                napi: napi.into(),
+                dev: dev_arc,
+                e1000_hw_ops: e10000_hw_ops_arc,
+                napi: napi_arc,
                 tx_ring,
                 rx_ring,
                 irq,
+                // irq_handler_list:vec::Vec::new(),
                 _irq_handler: AtomicPtr::new(core::ptr::null_mut()),
             }
-        )?)?;
+        )?;
+        // let _dev = Arc::clone(&(netdevice_prv_data.dev));
 
-        
+        netdev_reg.register(netdevice_prv_data)?;
 
         Ok(Box::try_new(
             E1000DrvPrvData{
                 // Must hold this registration, or the device will be removed.
                 _netdev_reg: netdev_reg,
+                _pdev:Arc::try_new(dev.clone())?,
+                _e1000_hw_ops,
+                bars,
+                // _napi,
+                _irq:irq,
+                // _irq_prv_data,
             }
         )?)
     }
 
     fn remove(data: &Self::Data) {
+        // data._netdev_reg.unregister(data._dev);
+        // let mut dev_ptr = data._pdev.get_ptr() as *mut device::Device;
+        unsafe {
+            bindings::pci_clear_master(data._pdev.get_ptr());
+            // bindings::pci_release_regions(data._pdev.get_ptr());
+            bindings::pci_release_selected_regions(data._pdev.get_ptr(),data.bars);
+
+            bindings::pci_disable_device(data._pdev.get_ptr());
+
+        }
+        // data._napi.disable();
+        data._e1000_hw_ops.e1000_reset_hw();
+        
         pr_info!("Rust for linux e1000 driver demo (remove)\n");
     }
 }
@@ -487,6 +590,7 @@ impl kernel::Module for E1000KernelMod {
 
 impl Drop for E1000KernelMod {
     fn drop(&mut self) {
+        // self._dev.unregister();
         pr_info!("Rust for linux e1000 driver demo (exit)\n");
     }
 }
