@@ -40,11 +40,38 @@ impl file::Operations for RustFile {
     }
 
     fn write(_this: &Self,_file: &file::File,_reader: &mut impl kernel::io_buffer::IoBufferReader,_offset:u64,) -> Result<usize> {
-        Err(EPERM)
+        // pr_info!("RustFile::write");
+        // pr_info!("RustFile::write: _offset={}",_offset);
+        // pr_info!("RustFile::write: _reader.len()={}",_reader.len());
+
+        if _reader.is_empty() {
+            Ok(0)
+        }else if _offset as usize > GLOBALMEM_SIZE {
+            // Err(EPERM)
+            Ok(0)
+
+        } else{
+            let reader_len = _reader.len();
+            let mut buf = _this.inner.lock();
+            _reader.read_slice(&mut buf[..reader_len])?;
+            Ok(reader_len)
+        }
     }
 
     fn read(_this: &Self,_file: &file::File,_writer: &mut impl kernel::io_buffer::IoBufferWriter,_offset:u64,) -> Result<usize> {
-        Err(EPERM)
+        // Err(EPERM)
+        if _offset as usize >= GLOBALMEM_SIZE {
+            // Err(EPERM)
+            Ok(0)
+        }else {
+            let buf = _this.inner.lock();
+            // pr_info!("RustFile::read: _offset={}",_offset);
+            // pr_info!("RustFile::read: _writer.len()={}",_writer.len());
+            // pr_info!("RustFile::read: buf.len()={}",buf.len());
+            _writer.write_slice(&buf[_offset as usize..])?;
+            Ok(buf.len())
+        }
+        
     }
 }
 

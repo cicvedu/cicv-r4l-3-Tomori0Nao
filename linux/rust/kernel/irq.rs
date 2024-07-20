@@ -309,7 +309,7 @@ struct InternalRegistration<T: PointerWrapper> {
     data: *mut core::ffi::c_void,
     name: CString,
     _p: PhantomData<T>,
-    is_empty:bool
+    // is_empty:bool
 }
 
 impl<T: PointerWrapper> InternalRegistration<T> {
@@ -354,14 +354,14 @@ impl<T: PointerWrapper> InternalRegistration<T> {
             _p: PhantomData,
         })
     }
-    fn new_empty(data: T) -> Self {
-        Self{
-            irq: 0,
-            name: CString::new("empty").unwrap(),
-            data: data.into_pointer() as *mut _,
-            _p: PhantomData,
-        }
-    }
+    // fn new_empty(data: T) -> Self {
+    //     Self{
+    //         irq: 0,
+    //         name: CString::new("empty").unwrap(),
+    //         data: data.into_pointer() as *mut _,
+    //         _p: PhantomData,
+    //     }
+    // }
     fn unregister(&mut self) {
         // Unregister irq handler.
         //
@@ -383,13 +383,15 @@ impl<T: PointerWrapper> Drop for InternalRegistration<T> {
         //
         // SAFETY: When `try_new` succeeds, the irq was successfully requested, so it is ok to free
         // it here.
-        if self.is_empty {
-            pr_info!("empty free!!! ");
-        }else {
-            unsafe { bindings::free_irq(self.irq, self.data) };
-            unsafe { T::from_pointer(self.data) };
+        // if self.is_empty {
+        //     pr_info!("empty free!!! ");
+        // }else {
+        //     unsafe { bindings::free_irq(self.irq, self.data) };
+        //     unsafe { T::from_pointer(self.data) };
 
-        }
+        // }
+        unsafe { bindings::free_irq(self.irq, self.data) };
+        unsafe { T::from_pointer(self.data) };
         pr_info!("irq: free ");
 
         // Free context data.
