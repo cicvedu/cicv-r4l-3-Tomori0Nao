@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
+#include <linux/kernel.h>
 
 /*
  * Generic wait-for-completion handler;
@@ -28,7 +29,7 @@
 void complete(struct completion *x)
 {
 	unsigned long flags;
-
+	printk(KERN_INFO "complete: %d\n", x->done);
 	raw_spin_lock_irqsave(&x->wait.lock, flags);
 
 	if (x->done != UINT_MAX)
@@ -134,7 +135,8 @@ wait_for_common_io(struct completion *x, long timeout, int state)
  * and interrupt capability. Also see complete().
  */
 void __sched wait_for_completion(struct completion *x)
-{
+{	
+	printk(KERN_INFO "wait_for_completion :%d\n", x->done);
 	wait_for_common(x, MAX_SCHEDULE_TIMEOUT, TASK_UNINTERRUPTIBLE);
 }
 EXPORT_SYMBOL(wait_for_completion);

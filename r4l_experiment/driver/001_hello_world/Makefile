@@ -4,6 +4,8 @@ ifneq ($(KERNELRELEASE),)
 module-objs := hello_world.o	
 obj-m := hello_world.o
 
+module-objs += rust_hello_world.o
+obj-m += rust_hello_world.o
 CFLAGS_hello_world.o := -DDEBUG
 else
 KDIR := ../../../linux

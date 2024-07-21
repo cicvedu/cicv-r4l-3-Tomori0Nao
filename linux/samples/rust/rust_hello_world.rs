@@ -2,7 +2,7 @@
 //! Rust minimal sample.
       
 use kernel::prelude::*;
-      
+// use kernel::task::Task;      
 module! {
   type: RustHelloWorld,
   name: "rust_helloworld",
