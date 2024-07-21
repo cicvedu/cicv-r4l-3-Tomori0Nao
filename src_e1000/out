@@ -1,0 +1,140 @@
+ip addr add 10.0.2.15/255.255.255.0 dev eth0
+[  301.390046] r4l_e1000_demo: Rust for linux e1000 driver demo (net device get_stats64)
+[  301.391919] r4l_e1000_demo: Rust for linux e1000 driver demo (net device get_stats64)
+~ # ip route add default via 10.0.2.1
+~ # ping 10.0.2.2
+PING 10.0.2.2 (10.0.2.2): 56 data bytes
+[  322.626373] r4l_e1000_demo: Rust for linux e1000 driver demo (net device start_xmit) tdt=3, tdh=3, r0
+[  322.629058] r4l_e1000_demo: Rust for linux e1000 driver demo (handle_irq)
+[  322.629931] r4l_e1000_demo: pending_irqs: 131
+[  322.630642] r4l_e1000_demo: Rust for linux e1000 driver demo (napi poll)
+[  322.632940] r4l_e1000_demo: Rust for linux e1000 driver demo (net device start_xmit) tdt=4, tdh=4, r1
+[  322.635222] r4l_e1000_demo: Rust for linux e1000 driver demo (handle_irq)
+[  322.636163] r4l_e1000_demo: pending_irqs: 131
+[  322.637204] r4l_e1000_demo: Rust for linux e1000 driver demo (napi poll)
+64 bytes from 10.0.2.2: seq=0 ttl=255 time=13.997 ms
+[  323.640297] r4l_e1000_demo: Rust for linux e1000 driver demo (net device start_xmit) tdt=5, tdh=5, r2
+[  323.642044] r4l_e1000_demo: Rust for linux e1000 driver demo (handle_irq)
+[  323.642971] r4l_e1000_demo: pending_irqs: 131
+[  323.643888] r4l_e1000_demo: Rust for linux e1000 driver demo (napi poll)
+64 bytes from 10.0.2.2: seq=1 ttl=255 time=5.445 ms
+[  324.646791] r4l_e1000_demo: Rust for linux e1000 driver demo (net device start_xmit) tdt=6, tdh=6, r3
+[  324.648784] r4l_e1000_demo: Rust for linux e1000 driver demo (handle_irq)
+[  324.649846] r4l_e1000_demo: pending_irqs: 131
+[  324.650883] r4l_e1000_demo: Rust for linux e1000 driver demo (napi poll)
+64 bytes from 10.0.2.2: seq=2 ttl=255 time=6.445 ms
+[  325.653497] r4l_e1000_demo: Rust for linux e1000 driver demo (net device start_xmit) tdt=7, tdh=7, r4
+[  325.655229] r4l_e1000_demo: Rust for linux e1000 driver demo (handle_irq)
+[  325.656263] r4l_e1000_demo: pending_irqs: 131
+[  325.657015] r4l_e1000_demo: Rust for linux e1000 driver demo (napi poll)
+64 bytes from 10.0.2.2: seq=3 ttl=255 time=5.492 ms
+^C
+--- 10.0.2.2 ping statistics ---
+4 packets transmitted, 4 packets received, 0% packet loss
+round-trip min/avg/max = 5.445/7.844/13.997 ms
+~ # rmmod r4l_e1000_demo.ko [  332.883519] complete: 0
+[  332.885076] complete: 0
+[  332.885961] complete: 0
+[  332.887003] complete: 0
+~ # rmmod r4l_e1000_demo.ko 
+[  340.274316] r4l_e1000_demo: Rust for linux e1000 driver demo (exit)
+[  340.845251] r4l_e1000_demo: Rust for linux e1000 driver demo (remove)
+[  340.846447] r4l_e1000_demo: Rust for linux e1000 driver demo (device_remove)
+[  340.848352] r4l_e1000_demo: Rust for linux e1000 driver demo (net device stop)
+[  340.849617] r4l_e1000_demo: name 0000:00:03.0
+[  340.850094] rust_kernel: irq: free 
+[  340.851110] r4l_e1000_demo: Rust for linux e1000 driver demo (net device get_stats64)
+[  340.856285] r4l_e1000_demo: Rust for linux e1000 driver demo (net device get_stats64)
+[  340.859861] wait_for_completion :0
+[  340.861707] complete: 0
+[  340.862192] wait_for_completion :0
+[  340.864665] complete: 0
+[  340.866772] complete: 0
+[  340.867064] wait_for_completion :1
+[  340.867521] wait_for_completion :0
+[  340.869751] complete: 0
+~ # insmod r4l_e1000_demo.ko
+[  349.085886] r4l_e1000_demo: Rust for linux e1000 driver demo (init)
+[  349.088046] r4l_e1000_demo: Rust for linux e1000 driver demo (probe): None
+[  349.089241] r4l_e1000_demo: before enable device
+[  349.477194] r4l_e1000_demo: after enable device
+[  349.498710] r4l_e1000_demo: Rust for linux e1000 driver demo (net device get_stats64)
+[  349.499829] wait_for_completion :0
+~ # [  349.502836] complete: 0
+~ # ip link set eth0 up
+[  362.055469] r4l_e1000_demo: Rust for linux e1000 driver demo (net device open)
+[  362.066513] r4l_e1000_demo: Rust for linux e1000 driver demo (net device get_stats64)
+[  362.069090] IPv6: ADDRCONF(NETDEV_CHANGE): eth0: link becomes ready
+[  362.070752] r4l_e1000_demo: Rust for linux e1000 driver demo (net device get_stats64)
+[  362.077117] r4l_e1000_demo: Rust for linux e1000 driver demo (net device start_xmit) tdt=0, tdh=0, r0
+[  362.079862] r4l_e1000_demo: Rust for linux e1000 driver demo (handle_irq)
+[  362.081442] r4l_e1000_demo: pending_irqs: 3
+[  362.082613] r4l_e1000_demo: Rust for linux e1000 driver demo (napi poll)
+~ # [  362.641476] r4l_e1000_demo: Rust for linux e1000 driver demo (net device start_xmit) tdt=1, tdh=0
+[  362.643418] r4l_e1000_demo: Rust for linux e1000 driver demo (handle_irq)
+[  362.644755] r4l_e1000_demo: pending_irqs: 3
+[  362.645446] r4l_e1000_demo: Rust for linux e1000 driver demo (napi poll)
+[  362.833707] r4l_e1000_demo: Rust for linux e1000 driver demo (net device start_xmit) tdt=2, tdh=2, r0
+[  362.835400] r4l_e1000_demo: Rust for linux e1000 driver demo (handle_irq)
+[  362.836530] r4l_e1000_demo: pending_irqs: 3
+[  362.837176] r4l_e1000_demo: Rust for linux e1000 driver demo (napi poll)
+[  363.665448] r4l_e1000_demo: Rust for linux e1000 driver demo (net device start_xmit) tdt=3, tdh=3, r0
+[  363.667394] r4l_e1000_demo: Rust for linux e1000 driver demo (handle_irq)
+[  363.668050] r4l_e1000_demo: pending_irqs: 3
+[  363.669207] r4l_e1000_demo: Rust for linux e1000 driver demo (napi poll)
+[  363.670816] r4l_e1000_demo: Rust for linux e1000 driver demo (net device start_xmit) tdt=4, tdh=4, r0
+[  363.672437] r4l_e1000_demo: Rust for linux e1000 driver demo (handle_irq)
+[  363.673405] r4l_e1000_demo: pending_irqs: 3
+[  363.674360] r4l_e1000_demo: Rust for linux e1000 driver demo (napi poll)
+[  364.688930] r4l_e1000_demo: Rust for linux e1000 driver demo (net device start_xmit) tdt=5, tdh=5, r0
+[  364.689574] r4l_e1000_demo: Rust for linux e1000 driver demo (handle_irq)
+[  364.689859] r4l_e1000_demo: pending_irqs: 3
+[  364.690191] r4l_e1000_demo: Rust for linux e1000 driver demo (napi poll)
+[  367.632713] r4l_e1000_demo: Rust for linux e1000 driver demo (net device start_xmit) tdt=6, tdh=6, r0
+[  367.633636] r4l_e1000_demo: Rust for linux e1000 driver demo (handle_irq)
+[  367.633961] r4l_e1000_demo: pending_irqs: 3
+[  367.634124] r4l_e1000_demo: Rust for linux e1000 driver demo (napi poll)
+ip addr add broadcast 10.0.2.255 dev eth0?
+[  373.399900] r4l_e1000_demo: Rust for linux e1000 driver demo (net device get_stats64)
+[  373.401835] r4l_e1000_demo: Rust for linux e1000 driver demo (net device get_stats64)
+[  373.416443] complete: 0
+[  373.419235] complete: 0
+[  373.433162] complete: 0
+ip: can't find device 'eth0␅'
+~ # ip addr add broadcast 10.0.2.255 dev eth0?[  375.377609] r4l_e1000_demo: Rust for linux e1000 drive0
+[  375.379249] r4l_e1000_demo: Rust for linux e1000 driver demo (handle_irq)
+[  375.380129] r4l_e1000_demo: pending_irqs: 3
+[  375.380919] r4l_e1000_demo: Rust for linux e1000 driver demo (napi poll)
+~ # ip addr add broadcast 10.0.2.255 dev eth0
+[  382.576888] r4l_e1000_demo: Rust for linux e1000 driver demo (net device get_stats64)
+[  382.578941] r4l_e1000_demo: Rust for linux e1000 driver demo (net device get_stats64)
+ip: RTNETLINK answers: Invalid argument
+~ # [  391.249236] r4l_e1000_demo: Rust for linux e1000 driver demo (net device start_xmit) tdt=0, tdh=0
+[  391.250889] r4l_e1000_demo: Rust for linux e1000 driver demo (handle_irq)
+[  391.252146] r4l_e1000_demo: pending_irqs: 3
+[  391.253121] r4l_e1000_demo: Rust for linux e1000 driver demo (napi poll)
+ip addr add 10.0.2.15/255.255.255.0 dev eth0 
+[  391.304311] r4l_e1000_demo: Rust for linux e1000 driver demo (net device get_stats64)
+[  391.306342] r4l_e1000_demo: Rust for linux e1000 driver demo (net device get_stats64)
+~ # ip route add default via 10.0.2.1
+~ # ping 10.0.2.2
+PING 10.0.2.2 (10.0.2.2): 56 data bytes
+[  410.291173] r4l_e1000_demo: Rust for linux e1000 driver demo (net device start_xmit) tdt=1, tdh=1, r0
+[  410.293180] r4l_e1000_demo: Rust for linux e1000 driver demo (handle_irq)
+[  410.294256] r4l_e1000_demo: pending_irqs: 131
+[  410.294972] r4l_e1000_demo: Rust for linux e1000 driver demo (napi poll)
+[  410.297193] r4l_e1000_demo: Rust for linux e1000 driver demo (net device start_xmit) tdt=2, tdh=2, r1
+[  410.298975] r4l_e1000_demo: Rust for linux e1000 driver demo (handle_irq)
+[  410.299834] r4l_e1000_demo: pending_irqs: 131
+[  410.300959] r4l_e1000_demo: Rust for linux e1000 driver demo (napi poll)
+64 bytes from 10.0.2.2: seq=0 ttl=255 time=12.854 ms
+[  411.304174] r4l_e1000_demo: Rust for linux e1000 driver demo (net device start_xmit) tdt=3, tdh=3, r2
+[  411.305853] r4l_e1000_demo: Rust for linux e1000 driver demo (handle_irq)
+[  411.306503] r4l_e1000_demo: pending_irqs: 131
+[  411.307020] r4l_e1000_demo: Rust for linux e1000 driver demo (napi poll)
+64 bytes from 10.0.2.2: seq=1 ttl=255 time=5.642 ms
+[  412.310767] r4l_e1000_demo: Rust for linux e1000 driver demo (net device start_xmit) tdt=4, tdh=4, r3
+[  412.312578] r4l_e1000_demo: Rust for linux e1000 driver demo (handle_irq)
+[  412.313470] r4l_e1000_demo: pending_irqs: 131
+[  412.314273] r4l_e1000_demo: Rust for linux e1000 driver demo (napi poll)
+64 bytes from 10.0.2.2: seq=2 ttl=255 time=5.708 ms
